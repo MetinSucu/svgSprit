@@ -1,4 +1,5 @@
 <?php
+
 class SvgSpriteGenerator
 {
     private $sourceDir;
@@ -23,13 +24,13 @@ class SvgSpriteGenerator
             exit;
         }
 
-        $svgSprite = '<svg width="0" height="0" class="hidden iconset">'."\n";
+        $svgSprite = '<svg width="0" height="0" class="hidden iconset">' . "\n";
         foreach ($svgFiles as $svgFile) {
             $svgName = pathinfo($svgFile, PATHINFO_FILENAME);
             $svgContent = file_get_contents($svgFile);
 
             preg_match('/viewBox="([^"]+)"/', $svgContent, $viewBoxMatches);
-            $viewBox = $viewBoxMatches[1] ?  $viewBoxMatches[1]: '0 0 100 100';
+            $viewBox = $viewBoxMatches[1] ? $viewBoxMatches[1] : '0 0 100 100';
 
             $svgContent = preg_replace('/\s(data-name|fill|stroke)="[^"]+"/', '', $svgContent);
             $svgContent = preg_replace('/id="Group_[^"]+"/', '', $svgContent);
@@ -42,15 +43,23 @@ class SvgSpriteGenerator
             if (!preg_match('/viewBox="/i', $svgContent)) {
                 $svgContent = preg_replace('/<svg/i', '<svg viewBox="0 0 100 100"', $svgContent, 1);
             }
-            $svgContent=trim($svgContent);
+            $svgContent = trim($svgContent);
 
             $svgSprite .= "<symbol id=\"$svgName\" xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"$viewBox\">\n$svgContent\n</symbol>\n";
         }
         $svgSprite .= '</svg>';
-
+        $svgSprite = $this->minifySvg($svgSprite);
         file_put_contents($this->outputFile, $svgSprite);
 
         echo "SVG sprite dosyası oluşturuldu: {$this->outputFile}";
+    }
+
+    private function minifySvg($svg)
+    {
+        $svg = preg_replace('/[\r\n\t]+/', ' ', $svg);
+        $svg = preg_replace('/> </', '><', $svg);
+
+        return $svg;
     }
 
     private function scanDirectory($dir)
