@@ -32,6 +32,10 @@ class SvgSpriteGenerator
             $viewBox = $viewBoxMatches[1] ?  $viewBoxMatches[1]: '0 0 100 100';
 
             $svgContent = preg_replace('/\s(data-name|fill|stroke)="[^"]+"/', '', $svgContent);
+            $svgContent = preg_replace('/id="Group_[^"]+"/', '', $svgContent);
+            $svgContent = preg_replace('/id="Rectangle_[^"]+"/', '', $svgContent);
+            $svgContent = preg_replace('/id="Path_[^"]+"/', '', $svgContent);
+
             $svgContent = preg_replace('/<svg[^>]+>/', '', $svgContent);
             $svgContent = preg_replace('/<\/svg>/', '', $svgContent);
 
