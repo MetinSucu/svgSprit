@@ -37,6 +37,9 @@ class SvgSpriteGenerator
             $svgContent = preg_replace('/id="Rectangle_[^"]+"/', '', $svgContent);
             $svgContent = preg_replace('/id="Path_[^"]+"/', '', $svgContent);
 
+            $svgContent = preg_replace('/<!--(.*?)-->/', '', $svgContent);
+            $svgContent = preg_replace('/<\?xml(.+?)\?>/', '', $svgContent);
+
             $svgContent = preg_replace('/<svg[^>]+>/', '', $svgContent);
             $svgContent = preg_replace('/<\/svg>/', '', $svgContent);
 
@@ -58,7 +61,7 @@ class SvgSpriteGenerator
     {
         $svg = preg_replace('/[\r\n\t]+/', ' ', $svg);
         $svg = preg_replace('/> </', '><', $svg);
-
+        $svg = preg_replace('/<g[^>]*><\/g>/', '', $svg);
         return $svg;
     }
 
