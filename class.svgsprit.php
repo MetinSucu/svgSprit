@@ -6,6 +6,10 @@ class SvgSpriteGenerator
     private $outputFile;
     private $excludeFiles;
     private $includeFiles;
+    private $iconListCSS = '.svgIconList{display:flex;flex-wrap:wrap}.svgIconList .item{cursor:pointer;width:100px;height:100px;display:flex;align-items:center;justify-content:center;padding:20px;border:1px solid #edf1f8}.svgIconList .item .icon{width:100%;max-height:50px;}.svgIconList .item:hover{background:#edf1f8;}';
+    private $iconListJS = 'var itemlar=document.querySelectorAll(".item");itemlar.forEach(function(e){e.addEventListener("click",function(){var e=this.innerHTML,t=document.createElement("textarea");t.value=e,document.body.appendChild(t),t.select(),document.execCommand("copy"),document.body.removeChild(t)})});';
+    private static $svgNameList;
+    private static $svgFileHTML;
 
     public function __construct($sourceDir, $outputFile, $excludeFiles = [], $includeFiles = [])
     {
@@ -25,6 +29,7 @@ class SvgSpriteGenerator
         }
 
         $svgSprite = '<svg width="0" height="0" class="hidden iconset">' . "\n";
+
         foreach ($svgFiles as $svgFile) {
             $svgName = pathinfo($svgFile, PATHINFO_FILENAME);
             $svgContent = file_get_contents($svgFile);
@@ -49,12 +54,14 @@ class SvgSpriteGenerator
             $svgContent = trim($svgContent);
 
             $svgSprite .= "<symbol id=\"$svgName\" xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"$viewBox\">\n$svgContent\n</symbol>\n";
+            self::$svgNameList[] = $svgName;
         }
         $svgSprite .= '</svg>';
         $svgSprite = $this->minifySvg($svgSprite);
+        self::$svgFileHTML = $svgSprite;
         file_put_contents($this->outputFile, $svgSprite);
 
-        echo "SVG sprite dosyası oluşturuldu: {$this->outputFile}";
+        return true;
     }
 
     private function minifySvg($svg)
@@ -63,6 +70,23 @@ class SvgSpriteGenerator
         $svg = preg_replace('/> </', '><', $svg);
         $svg = preg_replace('/<g[^>]*><\/g>/', '', $svg);
         return $svg;
+    }
+
+    public function getIconList()
+    {
+
+        if (count(self::$svgNameList) > 0) {
+            $returnHTML = self::$svgFileHTML;
+            $returnHTML .= '<style>' . $this->iconListCSS . '</style>';
+            $returnHTML .= '<div class="svgIconList">';
+            foreach (self::$svgNameList as $iconName) {
+                $returnHTML .= ' <div class="item"><svg class="icon"><use xlink:href="#' . $iconName . '"></use></svg></div>';
+            }
+            $returnHTML .= '</div>';
+             $returnHTML .= '<script>' . $this->iconListJS . '</script>';
+            return $returnHTML;
+        }
+        return false;
     }
 
     private function scanDirectory($dir)
