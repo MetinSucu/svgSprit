@@ -72,15 +72,25 @@ class SvgSpriteGenerator
         return $svg;
     }
 
-    public function getIconList()
+    public function getIconList($inline=true)
     {
 
         if (count(self::$svgNameList) > 0) {
-            $returnHTML = self::$svgFileHTML;
+            if($inline){
+                $returnHTML = self::$svgFileHTML;
+            }else{
+                $returnHTML="";
+            }
+
             $returnHTML .= '<style>' . $this->iconListCSS . '</style>';
             $returnHTML .= '<div class="svgIconList">';
             foreach (self::$svgNameList as $iconName) {
-                $returnHTML .= ' <div class="item"><svg class="icon"><use xlink:href="#' . $iconName . '"></use></svg></div>';
+                if($inline) {
+                    $returnHTML .= ' <div class="item"><svg class="icon"><use xlink:href="#' . $iconName . '"></use></svg></div>';
+                }else{
+                    $returnHTML .= ' <div class="item"><svg class="icon"><use xlink:href="'.$this->outputFile.'#' . $iconName . '"></use></svg></div>';
+
+                }
             }
             $returnHTML .= '</div>';
              $returnHTML .= '<script>' . $this->iconListJS . '</script>';
