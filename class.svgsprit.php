@@ -2,14 +2,14 @@
 
 class SvgSpriteGenerator
 {
+    private static $svgNameList;
+    private static $svgFileHTML;
     private $sourceDir;
     private $outputFile;
     private $excludeFiles;
     private $includeFiles;
     private $iconListCSS = '.svgIconList{display:flex;flex-wrap:wrap}.svgIconList .item{cursor:pointer;width:100px;height:100px;display:flex;align-items:center;justify-content:center;padding:20px;border:1px solid #edf1f8}.svgIconList .item .icon{width:100%;max-height:50px;}.svgIconList .item:hover{background:#edf1f8;}';
     private $iconListJS = 'var itemlar=document.querySelectorAll(".item");itemlar.forEach(function(e){e.addEventListener("click",function(){var e=this.innerHTML,t=document.createElement("textarea");t.value=e,document.body.appendChild(t),t.select(),document.execCommand("copy"),document.body.removeChild(t)})});';
-    private static $svgNameList;
-    private static $svgFileHTML;
 
     public function __construct($sourceDir, $outputFile, $excludeFiles = [], $includeFiles = [])
     {
@@ -17,6 +17,9 @@ class SvgSpriteGenerator
         $this->outputFile = $outputFile;
         $this->excludeFiles = $excludeFiles;
         $this->includeFiles = $includeFiles;
+        $outPutFileInfo = pathinfo($outputFile);
+        $this->excludeFiles[] = $outPutFileInfo['filename'];
+
     }
 
     public function generateSprite()
@@ -61,42 +64,7 @@ class SvgSpriteGenerator
         self::$svgFileHTML = $svgSprite;
         file_put_contents($this->outputFile, $svgSprite);
 
-        return true;
-    }
-
-    private function minifySvg($svg)
-    {
-        $svg = preg_replace('/[\r\n\t]+/', ' ', $svg);
-        $svg = preg_replace('/> </', '><', $svg);
-        $svg = preg_replace('/<g[^>]*><\/g>/', '', $svg);
-        return $svg;
-    }
-
-    public function getIconList($inline=true)
-    {
-
-        if (count(self::$svgNameList) > 0) {
-            if($inline){
-                $returnHTML = self::$svgFileHTML;
-            }else{
-                $returnHTML="";
-            }
-
-            $returnHTML .= '<style>' . $this->iconListCSS . '</style>';
-            $returnHTML .= '<div class="svgIconList">';
-            foreach (self::$svgNameList as $iconName) {
-                if($inline) {
-                    $returnHTML .= ' <div class="item"><svg class="icon"><use xlink:href="#' . $iconName . '"></use></svg></div>';
-                }else{
-                    $returnHTML .= ' <div class="item"><svg class="icon"><use xlink:href="'.$this->outputFile.'#' . $iconName . '"></use></svg></div>';
-
-                }
-            }
-            $returnHTML .= '</div>';
-             $returnHTML .= '<script>' . $this->iconListJS . '</script>';
-            return $returnHTML;
-        }
-        return false;
+        return $this;
     }
 
     private function scanDirectory($dir)
@@ -119,6 +87,42 @@ class SvgSpriteGenerator
             }
         }
         return $svgFiles;
+    }
+
+    private function minifySvg($svg)
+    {
+        $svg = preg_replace('/[\r\n\t]+/', ' ', $svg);
+        $svg = preg_replace('/> </', '><', $svg);
+        $svg = preg_replace('/<g[^>]*><\/g>/', '', $svg);
+        return $svg;
+    }
+
+    public function getIconList($inline = true)
+    {
+
+        if (count(self::$svgNameList) > 0) {
+            if ($inline) {
+                $returnHTML = self::$svgFileHTML;
+            } else {
+                $returnHTML = "";
+            }
+
+            $returnHTML .= '<style>' . $this->iconListCSS . '</style>';
+            $returnHTML .= '<div class="svgIconList">';
+            foreach (self::$svgNameList as $iconName) {
+                if ($inline) {
+                    $returnHTML .= ' <div class="item " title="'.$iconName.'"><svg class="icon"><use xlink:href="#' . $iconName .
+                        '"></use></svg></div>';
+                } else {
+                    $returnHTML .= ' <div class="item"  title="'.$iconName.'"><svg class="icon"><use xlink:href="' . $this->outputFile . '#' . $iconName . '"></use></svg></div>';
+
+                }
+            }
+            $returnHTML .= '</div>';
+            $returnHTML .= '<script>' . $this->iconListJS . '</script>';
+            return $returnHTML;
+        }
+        return false;
     }
 }
 
