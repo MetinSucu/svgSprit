@@ -22,7 +22,7 @@ class SvgSpriteGenerator
 
     }
 
-    public function generateSprite()
+    public function generateSprite($minify = true)
     {
         $svgFiles = $this->scanDirectory($this->sourceDir);
 
@@ -60,7 +60,9 @@ class SvgSpriteGenerator
             self::$svgNameList[] = $svgName;
         }
         $svgSprite .= '</svg>';
-        $svgSprite = $this->minifySvg($svgSprite);
+        if ($minify) {
+            $svgSprite = $this->minifySvg($svgSprite);
+        }
         self::$svgFileHTML = $svgSprite;
         file_put_contents($this->outputFile, $svgSprite);
 
@@ -111,10 +113,10 @@ class SvgSpriteGenerator
             $returnHTML .= '<div class="svgIconList">';
             foreach (self::$svgNameList as $iconName) {
                 if ($inline) {
-                    $returnHTML .= ' <div class="item " title="'.$iconName.'"><svg class="icon"><use xlink:href="#' . $iconName .
+                    $returnHTML .= ' <div class="item " title="' . $iconName . '"><svg class="icon"><use xlink:href="#' . $iconName .
                         '"></use></svg></div>';
                 } else {
-                    $returnHTML .= ' <div class="item"  title="'.$iconName.'"><svg class="icon"><use xlink:href="' . $this->outputFile . '#' . $iconName . '"></use></svg></div>';
+                    $returnHTML .= ' <div class="item"  title="' . $iconName . '"><svg class="icon"><use xlink:href="' . $this->outputFile . '#' . $iconName . '"></use></svg></div>';
 
                 }
             }
