@@ -51,11 +51,4 @@ Sınıfı kullanmak için aşağıdaki adımları izleyebilirsiniz:
 - **generateSprite($minify = true):** SVG sprite'ını oluşturur ve belirtilen dosyaya kaydeder.
 - **getIconList($inline = true):** Oluşturulan sprite'ı HTML ve CSS ile birlikte kullanmak için gerekli kodu üretir.
 
-## Öneriler ve İyileştirmeler
-
-- Hata kontrolü ve dökümantasyon ekleyin.
-- Esneklik için parametreleri artırın.
-- SVG işleme iyileştirmeleri ekleyin.
-- Filtreleme ve sıralama seçenekleri ekleyin.
-- Performans iyileştirmeleri düşünün.
-
+ 
