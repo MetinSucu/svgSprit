@@ -46,7 +46,7 @@ class SvgSpriteGenerator
             $viewBox = $this->getViewBoxFromSvg($svgContent);
             $this->getFillFromSvg($fileName, $svgContent);
 
-            $svgContent = $this->cleanUpSvgContent($svgContent);
+            $svgContent = $this->cleanUpSvgContent($fileName, $svgContent);
             $svgSymbols .= $this->separatePaths($svgData, $viewBox, $svgContent);
             $this->svgNameList[] = $svgName;
         }
@@ -129,10 +129,26 @@ class SvgSpriteGenerator
 
     }
 
-    private function cleanUpSvgContent($svgContent)
+    private function checkPathCount($fileName, $svgContent)
     {
-        $svgContent = preg_replace('/<style\s.*?<\/mask>/s', '', $svgContent);
+        $pattern = '/<([a-zA-Z]+)\s.*?\s*\/?>/s';
 
+        if ($this->pathSeparateStatus) {
+            preg_match_all($pattern, $svgContent, $matches);
+            $path_data = $matches[0];
+
+            if (count($path_data) > 1) {
+                return count($path_data);
+            }
+        }
+    }
+
+    private function cleanUpSvgContent($fileName, $svgContent)
+    {
+
+
+
+        $svgContent = preg_replace('/<style\s.*?<\/mask>/s', '', $svgContent);
         $svgContent = preg_replace('/\s(data-name|fill)="[^"]+"/', '', $svgContent);
         $svgContent = preg_replace('/\s(stroke)="[^"]+"/', ' stroke="currentColor"', $svgContent);
         $svgContent = preg_replace('/id="(?:Group|Rectangle|Path)_[^"]+"/', '', $svgContent);
@@ -147,6 +163,9 @@ class SvgSpriteGenerator
         $svgContent = preg_replace('/<linearGradient\s.*?<\/linearGradient>/s', '', $svgContent);
         if (!preg_match('/viewBox="/i', $svgContent)) {
             $svgContent = preg_replace('/<svg/i', '<svg viewBox="0 0 100 100"', $svgContent, 1);
+        }
+         if (!$this->checkPathCount($fileName, $svgContent)) {
+            $svgContent = preg_replace('/\s(fill-opacity|opacity)="[^"]+"/', '', $svgContent);
         }
         $svgContent = trim($svgContent);
 
