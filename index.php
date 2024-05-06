@@ -10,3 +10,4 @@ $includeFiles = []; // Dizindeki eklenecek dosyalar ( boş bırakılırsa tüm d
 
 $spriteGenerator = new SvgSpriteGenerator($sourceDir, $outputFile, $excludeFiles, $includeFiles);
 $spriteGenerator->generateSprite();
+echo $spriteGenerator->getIconList();

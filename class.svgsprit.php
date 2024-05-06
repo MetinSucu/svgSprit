@@ -3,6 +3,7 @@
 class SvgSpriteGenerator
 {
     private $sourceDir;
+    private $svgFilesData;
     private $outputFile;
     private $excludeFiles;
     private $includeFiles;
@@ -23,43 +24,81 @@ class SvgSpriteGenerator
 
     public function generateSprite($minify = true)
     {
-        $svgFiles = $this->scanDirectory($this->sourceDir);
+        $this->scanDirectory($this->sourceDir);
 
-        if (empty($svgFiles)) {
+        if (empty($this->svgFilesData)) {
             echo "Klasörde SVG dosyası bulunamadı.";
             exit;
         }
 
-        $svgSprite = '<svg width="0" height="0" class="hidden iconset">' . "\n";
-
-        foreach ($svgFiles as $svgFile) {
-            $svgName = pathinfo($svgFile, PATHINFO_FILENAME);
-            $svgContent = file_get_contents($svgFile);
-
+        $svgSymbols = "";
+        foreach ($this->svgFilesData as $svgData) {
+            $filePath = $svgData['filePath'];
+            $fileName = $svgData['fileName'];
+            $svgName = pathinfo($filePath, PATHINFO_FILENAME);
+            $svgContent = file_get_contents($filePath);
             $viewBox = $this->getViewBoxFromSvg($svgContent);
-
             $svgContent = $this->cleanUpSvgContent($svgContent);
-
-            if (!preg_match('/viewBox="/i', $svgContent)) {
-                $svgContent = preg_replace('/<svg/i', '<svg viewBox="0 0 100 100"', $svgContent, 1);
-            }
-
-            $svgContent = trim($svgContent);
-
-            $svgSprite .= "<symbol id=\"$svgName\" xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"$viewBox\">\n$svgContent\n</symbol>\n";
+            $svgSymbols .= $this->separatePaths($svgData, $viewBox, $svgContent);
             $this->svgNameList[] = $svgName;
         }
 
-        $svgSprite .= '</svg>';
 
-        if ($minify) {
-            $svgSprite = $this->minifySvg($svgSprite);
-        }
-
-        $this->svgFileHTML = $svgSprite;
-        file_put_contents($this->outputFile, $svgSprite);
-
+        $spriteContent = $this->createSpriteCode($svgSymbols, $minify);
+        $this->saveSpriteFile($this->outputFile, $spriteContent);
         return $this;
+    }
+
+    private function saveSpriteFile($outputPath, $svgContent)
+    {
+        $this->svgFileHTML = $svgContent;
+        file_put_contents($outputPath, $svgContent);
+        return $this;
+    }
+
+    private function createSpriteCode($spriteContent, $minify = true)
+    {
+        if ($minify) {
+            $spriteContent = $this->minifySvg($spriteContent);
+        }
+        $svgCode = '<svg width="0" height="0" class="hidden iconset">' . "\n";
+        $svgCode .= $spriteContent;
+        $svgCode .= '</svg>';
+        return $svgCode;
+    }
+
+    private function createSymbol($svgName, $viewBox, $svgContent)
+    {
+
+        return '<symbol id="' . $svgName . '" xmlns="http://www.w3.org/2000/svg" viewBox="' . $viewBox . '">' . "\n" . $svgContent . "\n" . '</symbol>' . "\n";
+    }
+
+    private function separatePaths($svgData, $viewBox, $svgContent)
+    {
+        $newContent = "";
+        $pattern = '/<path\s.*?\s*\/?>/s';
+
+
+        $svgName = $svgData['fileName'];
+        preg_match_all($pattern, $svgContent, $matches);
+
+
+        $path_data = $matches[0];
+        $pathCount = 0;
+        $this->svgFilesData[$svgName]["path"] = false;
+        if (count($path_data) > 1) {
+            foreach ($path_data as $pathCode) {
+                $pathCount++;
+                $newPathName = $svgName . "-" . $pathCount;
+                $newContent .= $this->createSymbol($newPathName, $viewBox, $pathCode);
+
+            }
+            $this->svgFilesData[$svgName]["path"] = true;
+            $this->svgFilesData[$svgName]["pathCount"] = $pathCount;
+        } else if (count($path_data) == 1) {
+            $newContent .= $this->createSymbol($svgName, $viewBox, $svgContent);
+        }
+        return $newContent;
     }
 
     private function getViewBoxFromSvg($svgContent)
@@ -70,12 +109,17 @@ class SvgSpriteGenerator
 
     private function cleanUpSvgContent($svgContent)
     {
+
         $svgContent = preg_replace('/\s(data-name|fill|stroke)="[^"]+"/', '', $svgContent);
         $svgContent = preg_replace('/id="(?:Group|Rectangle|Path)_[^"]+"/', '', $svgContent);
         $svgContent = preg_replace('/<!--(.*?)-->/', '', $svgContent);
         $svgContent = preg_replace('/<\?xml(.+?)\?>/', '', $svgContent);
         $svgContent = preg_replace('/<svg[^>]+>/', '', $svgContent);
         $svgContent = preg_replace('/<\/svg>/', '', $svgContent);
+        if (!preg_match('/viewBox="/i', $svgContent)) {
+            $svgContent = preg_replace('/<svg/i', '<svg viewBox="0 0 100 100"', $svgContent, 1);
+        }
+        $svgContent = trim($svgContent);
 
         return $svgContent;
     }
@@ -86,25 +130,36 @@ class SvgSpriteGenerator
         $files = scandir($dir);
 
         foreach ($files as $file) {
+            $fileData = [];
             if ($file === '.' || $file === '..') {
                 continue;
             }
 
-            $filePath = $dir . '/' . $file;
+            $filePath = rtrim($dir, "/") . "/" . $file;
 
             if (is_file($filePath) && pathinfo($file, PATHINFO_EXTENSION) === 'svg') {
                 $filename = pathinfo($file, PATHINFO_FILENAME);
 
                 if (
-                    (!empty($this->includeFiles) && in_array($filename, $this->includeFiles)) ||
+                    (!empty($this->includeFiles) && (in_array($filename, $this->includeFiles) || isset($this->includeFiles[$filename]))) ||
                     (empty($this->includeFiles) && !in_array($filename, $this->excludeFiles))
                 ) {
-                    $svgFiles[] = $filePath;
+                    $fileData['fileName'] = $filename;
+                    $fileData['filePath'] = $filePath;
+                    $fileData['pathCount'] = 1;
+                    if (isset($this->includeFiles[$filename])) {
+                        $fileData = array_merge($fileData, $this->includeFiles[$filename]);
+
+                    } else {
+
+                        $fileData['path'] = true;
+                    }
+                    $svgFiles[$filename] = $fileData;
                 }
             }
         }
-
-        return $svgFiles;
+        $this->svgFilesData = $svgFiles;
+        return true;
     }
 
     private function minifySvg($svg)
@@ -125,11 +180,9 @@ class SvgSpriteGenerator
             $returnHTML .= '<div class="svgIconList">';
 
             foreach ($this->svgNameList as $iconName) {
-                if ($inline) {
-                    $returnHTML .= $this->getInlineIconHtml($iconName);
-                } else {
-                    $returnHTML .= $this->getExternalIconHtml($iconName);
-                }
+
+                $returnHTML .= $this->getIconHTML($iconName, $inline);
+
             }
 
             $returnHTML .= '</div>';
@@ -141,14 +194,28 @@ class SvgSpriteGenerator
         return false;
     }
 
-    private function getInlineIconHtml($iconName)
-    {
-        return ' <div class="item" title="' . $iconName . '"><svg class="icon"><use xlink:href="#' . $iconName . '"></use></svg></div>';
-    }
 
-    private function getExternalIconHtml($iconName)
+    private function getIconHTML($iconName, $inline = true)
     {
-        return ' <div class="item" title="' . $iconName . '"><svg class="icon"><use xlink:href="' . $this->outputFile . '#' . $iconName . '"></use></svg></div>';
+        $svgData = $this->svgFilesData[$iconName];
+        $fileName = $svgData['fileName'];
+        $outputHTML = "";
+
+        $externalPath = $inline ? '' : $this->outputFile;
+        if ($svgData['path']) {
+            $outputHTML .= '<div class="item" title="' . $fileName . '">  ';
+            $outputHTML .= '<svg class="icon"> ';
+            for ($i = 1; $i <= $svgData['pathCount']; $i++) {
+                $newIconName = $iconName . "-" . $i;
+                $outputHTML .= '<use class="path' . $i . '" xlink:href="' . $externalPath . '#' . $newIconName . '"></use>';
+            }
+            $outputHTML .= '</svg>';
+            $outputHTML .= '</div>';
+        } else {
+            $outputHTML = ' <div class="item" title="' . $fileName . '"><svg class="icon"><use xlink:href="' . $externalPath . '#' . $iconName . '"></use></svg></div>';
+        }
+        return $outputHTML;
+
     }
 }
 
