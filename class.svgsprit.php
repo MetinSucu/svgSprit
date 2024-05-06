@@ -76,7 +76,7 @@ class SvgSpriteGenerator
     private function separatePaths($svgData, $viewBox, $svgContent)
     {
         $newContent = "";
-        $pattern = '/<path\s.*?\s*\/?>/s';
+        $pattern = '/<([a-zA-Z]+)\s.*?\s*\/?>/s';
 
 
         $svgName = $svgData['fileName'];
@@ -84,6 +84,7 @@ class SvgSpriteGenerator
 
 
         $path_data = $matches[0];
+
         $pathCount = 0;
         $this->svgFilesData[$svgName]["path"] = false;
         if (count($path_data) > 1) {
@@ -116,6 +117,9 @@ class SvgSpriteGenerator
         $svgContent = preg_replace('/<\?xml(.+?)\?>/', '', $svgContent);
         $svgContent = preg_replace('/<svg[^>]+>/', '', $svgContent);
         $svgContent = preg_replace('/<\/svg>/', '', $svgContent);
+        $svgContent = preg_replace('/<g[^>]+>/', '', $svgContent);
+        $svgContent = preg_replace('/<\/g>/', '', $svgContent);
+        $svgContent = preg_replace('/<mask\s.*?<\/mask>/s', '', $svgContent);
         if (!preg_match('/viewBox="/i', $svgContent)) {
             $svgContent = preg_replace('/<svg/i', '<svg viewBox="0 0 100 100"', $svgContent, 1);
         }
