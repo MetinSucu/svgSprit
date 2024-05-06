@@ -120,6 +120,7 @@ class SvgSpriteGenerator
         $svgContent = preg_replace('/<g[^>]+>/', '', $svgContent);
         $svgContent = preg_replace('/<\/g>/', '', $svgContent);
         $svgContent = preg_replace('/<mask\s.*?<\/mask>/s', '', $svgContent);
+        $svgContent = preg_replace('/<clipPath\s.*?<\/clipPath>/s', '', $svgContent);
         if (!preg_match('/viewBox="/i', $svgContent)) {
             $svgContent = preg_replace('/<svg/i', '<svg viewBox="0 0 100 100"', $svgContent, 1);
         }
