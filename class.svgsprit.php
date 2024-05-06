@@ -7,6 +7,7 @@ class SvgSpriteGenerator
     private $outputFile;
     private $excludeFiles;
     private $includeFiles;
+    private $pathSeparateStatus = true;
     private $svgNameList = [];
     private $svgFileHTML;
     private $iconListCSS = '.svgIconList{display:flex;flex-wrap:wrap}.svgIconList .item{cursor:pointer;width:100px;height:100px;display:flex;align-items:center;justify-content:center;padding:20px;border:1px solid #edf1f8}.svgIconList .item .icon{width:100%;max-height:50px;}.svgIconList .item:hover{background:#edf1f8;}';
@@ -20,6 +21,11 @@ class SvgSpriteGenerator
         $this->includeFiles = $includeFiles;
         $outPutFileInfo = pathinfo($outputFile);
         $this->excludeFiles[] = $outPutFileInfo['filename'];
+    }
+
+    public function setPathSeparete($status = true)
+    {
+        $this->pathSeparateStatus = $status;
     }
 
     public function generateSprite($minify = true)
@@ -38,6 +44,8 @@ class SvgSpriteGenerator
             $svgName = pathinfo($filePath, PATHINFO_FILENAME);
             $svgContent = file_get_contents($filePath);
             $viewBox = $this->getViewBoxFromSvg($svgContent);
+            $this->getFillFromSvg($fileName, $svgContent);
+
             $svgContent = $this->cleanUpSvgContent($svgContent);
             $svgSymbols .= $this->separatePaths($svgData, $viewBox, $svgContent);
             $this->svgNameList[] = $svgName;
@@ -67,10 +75,11 @@ class SvgSpriteGenerator
         return $svgCode;
     }
 
-    private function createSymbol($svgName, $viewBox, $svgContent)
+    private function createSymbol($svgName, $pathName, $viewBox, $svgContent)
     {
-
-        return '<symbol id="' . $svgName . '" xmlns="http://www.w3.org/2000/svg" viewBox="' . $viewBox . '">' . "\n" . $svgContent . "\n" . '</symbol>' . "\n";
+        $svgData = $this->svgFilesData[$svgName];
+        $fill = isset($svgData['data']['strokeFill']) ? ($svgData['data']['strokeFill'] == "none" ? 'fill="none"' : "") : "";
+        return '<symbol id="' . $pathName . '"  ' . $fill . ' xmlns="http://www.w3.org/2000/svg" viewBox="' . $viewBox . '">' . "\n" . $svgContent . "\n" . '</symbol>' . "\n";
     }
 
     private function separatePaths($svgData, $viewBox, $svgContent)
@@ -80,24 +89,25 @@ class SvgSpriteGenerator
 
 
         $svgName = $svgData['fileName'];
-        preg_match_all($pattern, $svgContent, $matches);
-
-
-        $path_data = $matches[0];
-
-        $pathCount = 0;
         $this->svgFilesData[$svgName]["path"] = false;
-        if (count($path_data) > 1) {
-            foreach ($path_data as $pathCode) {
-                $pathCount++;
-                $newPathName = $svgName . "-" . $pathCount;
-                $newContent .= $this->createSymbol($newPathName, $viewBox, $pathCode);
-
+        if ($this->pathSeparateStatus) {
+            preg_match_all($pattern, $svgContent, $matches);
+            $path_data = $matches[0];
+            $pathCount = 0;
+            if (count($path_data) > 1) {
+                foreach ($path_data as $pathCode) {
+                    $pathCount++;
+                    $newPathName = $svgName . "-" . $pathCount;
+                    $newContent .= $this->createSymbol($svgName, $newPathName, $viewBox, $pathCode);
+                }
+                $this->svgFilesData[$svgName]["path"] = true;
+                $this->svgFilesData[$svgName]["pathCount"] = $pathCount;
+            } else if (count($path_data) == 1) {
+                $newContent .= $this->createSymbol($svgName, $svgName, $viewBox, $svgContent);
             }
-            $this->svgFilesData[$svgName]["path"] = true;
-            $this->svgFilesData[$svgName]["pathCount"] = $pathCount;
-        } else if (count($path_data) == 1) {
-            $newContent .= $this->createSymbol($svgName, $viewBox, $svgContent);
+        } else {
+            $newContent .= $this->createSymbol($svgName, $svgName, $viewBox, $svgContent);
+
         }
         return $newContent;
     }
@@ -108,10 +118,23 @@ class SvgSpriteGenerator
         return $viewBoxMatches[1] ?? '0 0 100 100';
     }
 
+    private function getFillFromSvg($fileName, $svgContent)
+    {
+        preg_match('/fill="([^"]+)"/', $svgContent, $fillMatches);
+        preg_match('/stroke="([^"]+)"/', $svgContent, $strokeMatches);
+        if (isset($strokeMatches[1])) {
+            $this->svgFilesData[$fileName]['data']['strokeFill'] = $fillMatches[1] ?? false;
+
+        }
+
+    }
+
     private function cleanUpSvgContent($svgContent)
     {
+        $svgContent = preg_replace('/<style\s.*?<\/mask>/s', '', $svgContent);
 
-        $svgContent = preg_replace('/\s(data-name|fill|stroke)="[^"]+"/', '', $svgContent);
+        $svgContent = preg_replace('/\s(data-name|fill)="[^"]+"/', '', $svgContent);
+        $svgContent = preg_replace('/\s(stroke)="[^"]+"/', ' stroke="currentColor"', $svgContent);
         $svgContent = preg_replace('/id="(?:Group|Rectangle|Path)_[^"]+"/', '', $svgContent);
         $svgContent = preg_replace('/<!--(.*?)-->/', '', $svgContent);
         $svgContent = preg_replace('/<\?xml(.+?)\?>/', '', $svgContent);
