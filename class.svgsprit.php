@@ -148,7 +148,7 @@ class SvgSpriteGenerator
 
 
 
-        $svgContent = preg_replace('/<style\s.*?<\/mask>/s', '', $svgContent);
+        $svgContent = preg_replace('/<style\b[^>]*>(.*?)<\/style>/s', '', $svgContent);
         $svgContent = preg_replace('/\s(data-name|fill)="[^"]+"/', '', $svgContent);
         $svgContent = preg_replace('/\s(stroke)="[^"]+"/', ' stroke="currentColor"', $svgContent);
         $svgContent = preg_replace('/id="(?:Group|Rectangle|Path)_[^"]+"/', '', $svgContent);
@@ -161,6 +161,7 @@ class SvgSpriteGenerator
         $svgContent = preg_replace('/<mask\s.*?<\/mask>/s', '', $svgContent);
         $svgContent = preg_replace('/<clipPath\s.*?<\/clipPath>/s', '', $svgContent);
         $svgContent = preg_replace('/<linearGradient\s.*?<\/linearGradient>/s', '', $svgContent);
+        $svgContent = preg_replace('/<defs>\s*<\/defs>/s', '', $svgContent);
         if (!preg_match('/viewBox="/i', $svgContent)) {
             $svgContent = preg_replace('/<svg/i', '<svg viewBox="0 0 100 100"', $svgContent, 1);
         }
