@@ -36,7 +36,7 @@ class SvgSpriteGenerator
             echo "Klasörde SVG dosyası bulunamadı.";
             exit;
         }
-
+print_r($this->svgFilesData);
         $svgSymbols = "";
         foreach ($this->svgFilesData as $svgData) {
             $filePath = $svgData['filePath'];
@@ -90,7 +90,7 @@ class SvgSpriteGenerator
 
         $svgName = $svgData['fileName'];
         $this->svgFilesData[$svgName]["path"] = false;
-        if ($this->pathSeparateStatus) {
+        if ($svgData['path']) {
             preg_match_all($pattern, $svgContent, $matches);
             $path_data = $matches[0];
             $pathCount = 0;
@@ -147,7 +147,6 @@ class SvgSpriteGenerator
     {
 
 
-
         $svgContent = preg_replace('/<style\b[^>]*>(.*?)<\/style>/s', '', $svgContent);
         $svgContent = preg_replace('/\s(data-name|fill)="[^"]+"/', '', $svgContent);
         $svgContent = preg_replace('/\s(stroke)="[^"]+"/', ' stroke="currentColor"', $svgContent);
@@ -165,7 +164,7 @@ class SvgSpriteGenerator
         if (!preg_match('/viewBox="/i', $svgContent)) {
             $svgContent = preg_replace('/<svg/i', '<svg viewBox="0 0 100 100"', $svgContent, 1);
         }
-         if (!$this->checkPathCount($fileName, $svgContent)) {
+        if (!$this->checkPathCount($fileName, $svgContent)) {
             $svgContent = preg_replace('/\s(fill-opacity|opacity)="[^"]+"/', '', $svgContent);
         }
         $svgContent = trim($svgContent);
@@ -196,12 +195,14 @@ class SvgSpriteGenerator
                     $fileData['fileName'] = $filename;
                     $fileData['filePath'] = $filePath;
                     $fileData['pathCount'] = 1;
+
+                    if($this->pathSeparateStatus){
+                        $fileData['path'] = true;
+                    }else{
+                        $fileData['path'] = false;
+                    }
                     if (isset($this->includeFiles[$filename])) {
                         $fileData = array_merge($fileData, $this->includeFiles[$filename]);
-
-                    } else {
-
-                        $fileData['path'] = true;
                     }
                     $svgFiles[$filename] = $fileData;
                 }
