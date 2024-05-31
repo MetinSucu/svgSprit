@@ -36,7 +36,7 @@ class SvgSpriteGenerator
             echo "Klasörde SVG dosyası bulunamadı.";
             exit;
         }
-print_r($this->svgFilesData);
+
         $svgSymbols = "";
         foreach ($this->svgFilesData as $svgData) {
             $filePath = $svgData['filePath'];
