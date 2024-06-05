@@ -132,8 +132,9 @@ class SvgSpriteGenerator
     private function checkPathCount($fileName, $svgContent)
     {
         $pattern = '/<([a-zA-Z]+)\s.*?\s*\/?>/s';
+        $svgData = $this->svgFilesData[$fileName];
 
-        if ($this->pathSeparateStatus) {
+        if ($svgData['path']=="1") {
             preg_match_all($pattern, $svgContent, $matches);
             $path_data = $matches[0];
 
@@ -164,6 +165,7 @@ class SvgSpriteGenerator
         if (!preg_match('/viewBox="/i', $svgContent)) {
             $svgContent = preg_replace('/<svg/i', '<svg viewBox="0 0 100 100"', $svgContent, 1);
         }
+
         if (!$this->checkPathCount($fileName, $svgContent)) {
             $svgContent = preg_replace('/\s(fill-opacity|opacity)="[^"]+"/', '', $svgContent);
         }
